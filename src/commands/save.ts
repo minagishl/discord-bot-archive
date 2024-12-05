@@ -15,6 +15,12 @@ export default {
         .setName('user')
         .setDescription('The user to archive messages from.')
         .setRequired(false),
+    )
+    .addNumberOption((option) =>
+      option
+        .setName('limit')
+        .setDescription('The maximum number of messages to archive.')
+        .setRequired(false),
     ),
 
   async execute(interaction: ChatInputCommandInteraction) {
@@ -40,6 +46,7 @@ export default {
         timestamp: number;
       }> = [];
 
+      const limit = interaction.options.getNumber('limit') ?? null; // Optional Limit
       let lastMessageId: string | undefined;
 
       while (true) {
@@ -69,12 +76,22 @@ export default {
           }
         });
 
+        if (limit !== null && filteredMessages.length >= limit) {
+          // Exit loop when the limit is reached
+          break;
+        }
+
         await interaction.editReply({
           content: `Archiving messages... (${filteredMessages.length} messages archived)`,
         });
 
         // Update the lastMessageId to fetch older messages
         lastMessageId = messages.last()?.id;
+      }
+
+      if (limit !== null && filteredMessages.length > limit) {
+        // Truncate messages if the limit is exceeded
+        filteredMessages.splice(limit);
       }
 
       // Convert to JSON format
