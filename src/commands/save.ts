@@ -28,7 +28,10 @@ export default {
         });
       }
 
-      await interaction.deferReply({ ephemeral: true });
+      await interaction.reply({
+        content: 'Archiving messages...',
+        ephemeral: true,
+      });
 
       const targetUser = interaction.options.getUser('user'); // Optional User
       const filteredMessages: Array<{
@@ -64,6 +67,10 @@ export default {
               timestamp: message.createdTimestamp,
             });
           }
+        });
+
+        await interaction.editReply({
+          content: `Archiving messages... (${filteredMessages.length} messages archived)`,
         });
 
         // Update the lastMessageId to fetch older messages
