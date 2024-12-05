@@ -10,7 +10,13 @@ export default {
     .setDescription(
       'Ranking of the highest number of messages posted on the current channel',
     )
-    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
+    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
+    .addBooleanOption((option) =>
+      option
+        .setName('ephemeral')
+        .setDescription('Whether the reply should be ephemeral.')
+        .setRequired(false),
+    ),
 
   async execute(interaction: ChatInputCommandInteraction) {
     try {
@@ -25,7 +31,7 @@ export default {
 
       await interaction.reply({
         content: "We're collecting messages...",
-        ephemeral: true,
+        ephemeral: interaction.options.getBoolean('ephemeral') ?? true,
       });
 
       const count = new Map<string, number>();

@@ -21,6 +21,12 @@ export default {
         .setName('limit')
         .setDescription('The maximum number of messages to archive.')
         .setRequired(false),
+    )
+    .addBooleanOption((option) =>
+      option
+        .setName('ephemeral')
+        .setDescription('Whether the reply should be ephemeral.')
+        .setRequired(false),
     ),
 
   async execute(interaction: ChatInputCommandInteraction) {
@@ -36,7 +42,7 @@ export default {
 
       await interaction.reply({
         content: 'Archiving messages...',
-        ephemeral: true,
+        ephemeral: interaction.options.getBoolean('ephemeral') ?? true,
       });
 
       const targetUser = interaction.options.getUser('user'); // Optional User
