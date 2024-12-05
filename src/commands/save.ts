@@ -28,6 +28,8 @@ export default {
         });
       }
 
+      await interaction.deferReply({ ephemeral: true });
+
       const targetUser = interaction.options.getUser('user'); // Optional User
       const filteredMessages: Array<{
         author: string;
@@ -77,16 +79,14 @@ export default {
       });
 
       // Send to command executor
-      return await interaction.reply({
+      return await interaction.editReply({
         content: 'Messages have been saved.',
         files: [attachment],
-        ephemeral: true, // Viewable only by the executor
       });
     } catch (error) {
       console.error(error);
-      return await interaction.reply({
+      return await interaction.editReply({
         content: 'An error occurred while saving messages.',
-        ephemeral: true,
       });
     }
   },
