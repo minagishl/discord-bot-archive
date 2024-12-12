@@ -1,8 +1,8 @@
 import {
   SlashCommandBuilder,
   PermissionFlagsBits,
+  TextChannel,
   type ChatInputCommandInteraction,
-  type TextChannel,
   type AnyThreadChannel,
 } from 'discord.js';
 
@@ -54,15 +54,15 @@ export default {
         );
 
         for (const channel of channels.values()) {
-          await processChannel(channel, count, interaction);
+          await processChannelAndThreads(channel, count, interaction);
         }
       } else {
-        await processChannel(channel, count, interaction);
+        await processChannelAndThreads(channel, count, interaction);
       }
 
       // Generate ranking message
       let rankingMessage = `
-          Ranking of the highest number of messages posted on ${isAll ? 'all channels' : 'the current channel'}:
+          Ranking of the highest number of messages posted on ${isAll ? 'all channels and threads' : 'the current channel and its threads'}:
           ${[...count]
             .sort((a, b) => b[1] - a[1])
             .map(([userId, messageCount], index) => {
@@ -88,11 +88,12 @@ export default {
   },
 };
 
-async function processChannel(
+async function processChannelAndThreads(
   channel: TextChannel | AnyThreadChannel,
   count: Map<string, number>,
   interaction: ChatInputCommandInteraction,
 ): Promise<void> {
+  // Process main channel messages
   let lastMessageId: string | undefined;
 
   while (true) {
@@ -104,12 +105,48 @@ async function processChannel(
     if (messages.size === 0) break;
 
     messages.forEach((message) => {
-      const author = message.author.tag;
-      count.set(author, (count.get(author) ?? 0) + 1);
+      const userTag = message.author.tag;
+      count.set(userTag, (count.get(userTag) ?? 0) + 1);
     });
 
     await interaction.editReply({
       content: `Collected ${count.size} users from ${channel.name}...`,
+    });
+
+    lastMessageId = messages.last()?.id;
+  }
+
+  // If there are threads, they are also processed
+  if (channel instanceof TextChannel) {
+    const threads = channel.threads.cache;
+    for (const thread of threads.values()) {
+      await processThread(thread, count, interaction);
+    }
+  }
+}
+
+async function processThread(
+  thread: AnyThreadChannel,
+  count: Map<string, number>,
+  interaction: ChatInputCommandInteraction,
+): Promise<void> {
+  let lastMessageId: string | undefined;
+
+  while (true) {
+    const messages = await thread.messages.fetch({
+      limit: 100,
+      before: lastMessageId,
+    });
+
+    if (messages.size === 0) break;
+
+    messages.forEach((message) => {
+      const userTag = message.author.tag;
+      count.set(userTag, (count.get(userTag) ?? 0) + 1);
+    });
+
+    await interaction.editReply({
+      content: `Collected ${count.size} users from thread ${thread.name}...`,
     });
 
     lastMessageId = messages.last()?.id;
