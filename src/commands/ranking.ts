@@ -3,6 +3,7 @@ import {
   PermissionFlagsBits,
   type ChatInputCommandInteraction,
   type TextChannel,
+  type AnyThreadChannel,
 } from 'discord.js';
 
 export default {
@@ -45,17 +46,25 @@ export default {
       const count = new Map<string, number>();
 
       if (isAll && interaction.guild !== null) {
-        // Processing of all channels
         const channels = interaction.guild.channels.cache.filter(
-          (ch): ch is TextChannel => ch.type === 0,
+          (ch): ch is TextChannel =>
+            ch.type === 15 || // ForumChannel
+            ch.type === 11 || // ThreadChannel
+            ch.type === 5 || // GuildNewsChannel
+            ch.type === 2 || // VoiceChannel (TextChannel)
+            ch.type === 0, // TextChannel
         );
 
         for (const channel of channels.values()) {
+          // Fetch messages from threads
+          if ('threads' in channel) {
+            const threads = await channel.threads.fetch();
+            for (const thread of threads.threads.values()) {
+              await processChannel(thread, count, interaction);
+            }
+          }
           await processChannel(channel, count, interaction);
         }
-      } else {
-        // Single-channel processing
-        await processChannel(channel, count, interaction);
       }
 
       // Generate ranking message
@@ -87,7 +96,7 @@ export default {
 };
 
 async function processChannel(
-  channel: TextChannel,
+  channel: TextChannel | AnyThreadChannel,
   count: Map<string, number>,
   interaction: ChatInputCommandInteraction,
 ): Promise<void> {
