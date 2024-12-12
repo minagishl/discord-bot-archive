@@ -59,18 +59,26 @@ export default {
         lastMessageId = messages.last()?.id;
       }
 
+      // Generate ranking message
+      let rankingMessage = `
+        Ranking of the highest number of messages posted on the current channel:
+        ${[...count]
+          .sort((a, b) => b[1] - a[1])
+          .map(([userId, messageCount], index) => {
+            const user = interaction.guild?.members.cache.get(userId);
+            return `${index + 1}. ${user?.user.tag ?? userId} - ${messageCount}`;
+          })
+          .join('\n')}
+      `;
+
+      // Check if the message exceeds 2000 characters
+      if (rankingMessage.length > 2000) {
+        rankingMessage = rankingMessage.substring(0, 1997) + '...';
+      }
+
       // Send to command executor
       return await interaction.editReply({
-        content: `
-          Ranking of the highest number of messages posted on the current channel:
-          ${[...count]
-            .sort((a, b) => b[1] - a[1])
-            .map(([userId, messageCount], index) => {
-              const user = interaction.guild?.members.cache.get(userId);
-              return `${index + 1}. ${user?.user.tag ?? userId} - ${messageCount}`;
-            })
-            .join('\n')}
-        `,
+        content: rankingMessage,
       });
     } catch (error) {
       console.error(error);
