@@ -48,23 +48,16 @@ export default {
       if (isAll && interaction.guild !== null) {
         const channels = interaction.guild.channels.cache.filter(
           (ch): ch is TextChannel =>
-            ch.type === 15 || // ForumChannel
-            ch.type === 11 || // ThreadChannel
             ch.type === 5 || // GuildNewsChannel
             ch.type === 2 || // VoiceChannel (TextChannel)
             ch.type === 0, // TextChannel
         );
 
         for (const channel of channels.values()) {
-          // Fetch messages from threads
-          if ('threads' in channel) {
-            const threads = await channel.threads.fetch();
-            for (const thread of threads.threads.values()) {
-              await processChannel(thread, count, interaction);
-            }
-          }
           await processChannel(channel, count, interaction);
         }
+      } else {
+        await processChannel(channel, count, interaction);
       }
 
       // Generate ranking message
