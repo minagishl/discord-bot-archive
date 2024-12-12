@@ -2,6 +2,7 @@ import {
   SlashCommandBuilder,
   PermissionFlagsBits,
   TextChannel,
+  ForumChannel,
   type ChatInputCommandInteraction,
   type AnyThreadChannel,
 } from 'discord.js';
@@ -28,7 +29,7 @@ export default {
 
   async execute(interaction: ChatInputCommandInteraction) {
     try {
-      const channel = interaction.channel as TextChannel;
+      const channel = interaction.channel as TextChannel | ForumChannel;
       const isAll = interaction.options.getBoolean('all') ?? false;
 
       if (channel === null) {
@@ -47,10 +48,11 @@ export default {
 
       if (isAll && interaction.guild !== null) {
         const channels = interaction.guild.channels.cache.filter(
-          (ch): ch is TextChannel =>
+          (ch): ch is TextChannel | ForumChannel =>
             ch.type === 5 || // GuildNewsChannel
             ch.type === 2 || // VoiceChannel (TextChannel)
-            ch.type === 0, // TextChannel
+            ch.type === 0 || // TextChannel
+            ch.type === 15, // ForumChannel
         );
 
         for (const channel of channels.values()) {
@@ -89,12 +91,20 @@ export default {
 };
 
 async function processChannelAndThreads(
-  channel: TextChannel | AnyThreadChannel,
+  channel: TextChannel | ForumChannel | AnyThreadChannel,
   count: Map<string, number>,
   interaction: ChatInputCommandInteraction,
 ): Promise<void> {
-  // Process main channel messages
+  // Process main channel messages or forum channel active threads
   let lastMessageId: string | undefined;
+
+  if (channel instanceof ForumChannel) {
+    const activeThreads = channel.threads.cache;
+    for (const thread of activeThreads.values()) {
+      await processThread(thread, count, interaction);
+    }
+    return;
+  }
 
   while (true) {
     const messages = await channel.messages.fetch({
@@ -116,7 +126,7 @@ async function processChannelAndThreads(
     lastMessageId = messages.last()?.id;
   }
 
-  // If there are threads, they are also processed
+  // If there are threads in a text channel, process them
   if (channel instanceof TextChannel) {
     const threads = channel.threads.cache;
     for (const thread of threads.values()) {
