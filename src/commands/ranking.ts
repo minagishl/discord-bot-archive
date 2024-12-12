@@ -2,6 +2,7 @@ import {
   SlashCommandBuilder,
   PermissionFlagsBits,
   type ChatInputCommandInteraction,
+  type TextChannel,
 } from 'discord.js';
 
 export default {
@@ -16,11 +17,18 @@ export default {
         .setName('ephemeral')
         .setDescription('Whether the reply should be ephemeral.')
         .setRequired(false),
+    )
+    .addBooleanOption((option) =>
+      option
+        .setName('all')
+        .setDescription('Whether to include all channel messages.')
+        .setRequired(false),
     ),
 
   async execute(interaction: ChatInputCommandInteraction) {
     try {
-      const channel = interaction.channel; // Current Channel
+      const channel = interaction.channel as TextChannel;
+      const isAll = interaction.options.getBoolean('all') ?? false;
 
       if (channel === null) {
         return await interaction.reply({
@@ -35,56 +43,73 @@ export default {
       });
 
       const count = new Map<string, number>();
-      let lastMessageId: string | undefined;
 
-      while (true) {
-        // Fetch messages in chunks of 100, starting from the last fetched message
-        const messages = await channel.messages.fetch({
-          limit: 100,
-          before: lastMessageId,
-        });
+      if (isAll && interaction.guild !== null) {
+        // Processing of all channels
+        const channels = interaction.guild.channels.cache.filter(
+          (ch): ch is TextChannel => ch.type === 0,
+        );
 
-        if (messages.size === 0) break; // Exit loop when no more messages are found
-
-        messages.forEach((message) => {
-          const author = message.author.tag;
-          count.set(author, (count.get(author) ?? 0) + 1);
-        });
-
-        await interaction.editReply({
-          content: `Collected ${count.size} users...`,
-        });
-
-        // Update the lastMessageId to fetch older messages
-        lastMessageId = messages.last()?.id;
+        for (const channel of channels.values()) {
+          await processChannel(channel, count, interaction);
+        }
+      } else {
+        // Single-channel processing
+        await processChannel(channel, count, interaction);
       }
 
       // Generate ranking message
       let rankingMessage = `
-        Ranking of the highest number of messages posted on the current channel:
-        ${[...count]
-          .sort((a, b) => b[1] - a[1])
-          .map(([userId, messageCount], index) => {
-            const user = interaction.guild?.members.cache.get(userId);
-            return `${index + 1}. ${user?.user.tag ?? userId} - ${messageCount}`;
-          })
-          .join('\n')}
-      `;
+          Ranking of the highest number of messages posted on ${isAll ? 'all channels' : 'the current channel'}:
+          ${[...count]
+            .sort((a, b) => b[1] - a[1])
+            .map(([userId, messageCount], index) => {
+              const user = interaction.guild?.members.cache.get(userId);
+              return `${index + 1}. ${user?.user.tag ?? userId} - ${messageCount}`;
+            })
+            .join('\n')}
+        `;
 
-      // Check if the message exceeds 2000 characters
       if (rankingMessage.length > 2000) {
         rankingMessage = rankingMessage.substring(0, 1997) + '...';
       }
 
-      // Send to command executor
       return await interaction.editReply({
         content: rankingMessage,
       });
     } catch (error) {
       console.error(error);
       return await interaction.editReply({
-        content: 'An error occurred while saving messages.',
+        content: 'An error occurred while collecting messages.',
       });
     }
   },
 };
+
+async function processChannel(
+  channel: TextChannel,
+  count: Map<string, number>,
+  interaction: ChatInputCommandInteraction,
+): Promise<void> {
+  let lastMessageId: string | undefined;
+
+  while (true) {
+    const messages = await channel.messages.fetch({
+      limit: 100,
+      before: lastMessageId,
+    });
+
+    if (messages.size === 0) break;
+
+    messages.forEach((message) => {
+      const author = message.author.tag;
+      count.set(author, (count.get(author) ?? 0) + 1);
+    });
+
+    await interaction.editReply({
+      content: `Collected ${count.size} users from ${channel.name}...`,
+    });
+
+    lastMessageId = messages.last()?.id;
+  }
+}
