@@ -29,30 +29,30 @@
   },
   "dependencies": {
     "@types/express": "^5.0.0",
-    "discord.js": "^14.16.3",
+    "discord.js": "^14.17.3",
     "dotenv": "^16.4.7",
     "express": "^4.21.2"
   },
   "devDependencies": {
-    "@commitlint/cli": "^19.6.0",
+    "@commitlint/cli": "^19.6.1",
     "@commitlint/config-conventional": "^19.6.0",
-    "@types/node": "^22.10.2",
+    "@types/node": "^22.10.7",
     "@typescript-eslint/eslint-plugin": "^7.7.0",
     "@typescript-eslint/parser": "7.7.0",
-    "esbuild": "^0.24.0",
+    "esbuild": "^0.24.2",
     "eslint": "^8.56.0",
     "eslint-config-love": "^47.0.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-import": "^2.29.1",
     "eslint-plugin-n": "16.6.2",
     "eslint-plugin-promise": "^6.1.1",
-    "lint-staged": "^15.2.11",
+    "lint-staged": "^15.4.1",
     "prettier": "^3.4.2",
     "tsc-alias": "^1.8.10",
     "tsx": "^4.19.2",
-    "typescript": "5.7.2",
+    "typescript": "5.7.3",
     "vite-tsconfig-paths": "^5.1.4",
-    "vitest": "^2.1.8"
+    "vitest": "^3.0.2"
   },
   "packageManager": "yarn@1.22.22"
 }
